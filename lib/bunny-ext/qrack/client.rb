@@ -1,3 +1,6 @@
+require 'qrack/client'
+
+
 module Qrack
   class Client
     SOCKET_TIMEOUT  = 5.0

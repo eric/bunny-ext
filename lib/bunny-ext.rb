@@ -1,6 +1,17 @@
 require 'bunny'
 
 module Bunny
+  Timer = if RUBY_VERSION < "1.9"
+            begin
+              require 'system_timer'
+              SystemTimer
+            rescue LoadError
+              Timeout
+            end
+          else
+            Timeout
+          end
+
   private
   def self.setup(version, opts)  
     if version == '08'
@@ -28,4 +39,5 @@ module Bunny
 
       client = Bunny::Client09.new(opts)
     end
+  end
 end
