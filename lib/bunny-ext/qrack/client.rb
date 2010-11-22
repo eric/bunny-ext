@@ -7,7 +7,7 @@ module Qrack
 
     alias initialize_without_timeout_opts initialize
     def initialize_with_timeout_opts(opts = {})
-      initialize_without_timeout_opts
+      initialize_without_timeout_opts(opts)
       @socket_timeout = opts[:socket_timeout] || SOCKET_TIMEOUT
       @use_timeout = RUBY_VERSION >= "1.9"
     end
