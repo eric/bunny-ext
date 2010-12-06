@@ -78,5 +78,22 @@ module Qrack
 
       @socket
     end
+
+    def close
+      return if @socket.nil? || @socket.closed?
+
+      # Close all active channels
+      channels.each { |c| Bunny::Timer::timeout(@socket_timeout) { c.close if c.open? } }
+
+      # Close connection to AMQP server
+      Bunny::Timer::timeout(@socket_timeout) { close_connection }
+    ensure
+      @channels = []
+      # Close TCP Socket
+      close_socket
+    end
+
+    alias stop close
+
   end
 end
