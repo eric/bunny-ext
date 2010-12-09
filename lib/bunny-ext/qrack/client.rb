@@ -87,9 +87,10 @@ module Qrack
 
       # Close connection to AMQP server
       Bunny::Timer::timeout(@socket_timeout) { close_connection }
+    rescue Exception
+      # http://http://cheezburger.com/Asset/View/4033311488
     ensure
       @channels = []
-      # Close TCP Socket
       close_socket
     end
 
