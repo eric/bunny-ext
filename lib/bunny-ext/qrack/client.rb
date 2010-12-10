@@ -3,13 +3,11 @@ require 'qrack/client'
 
 module Qrack
   class Client
-    SOCKET_TIMEOUT  = 5.0
 
     alias initialize_without_timeout_opts initialize
     def initialize_with_timeout_opts(opts = {})
       initialize_without_timeout_opts(opts)
-      @socket_timeout = opts[:socket_timeout] || SOCKET_TIMEOUT
-      @use_timeout = RUBY_VERSION >= "1.9"
+      @read_write_timeout = opts[:socket_timeout]
     end
     alias initialize initialize_with_timeout_opts
 
@@ -20,8 +18,8 @@ module Qrack
     def send_command(cmd, *args)
       begin
         raise Bunny::ConnectionError, 'No connection - socket has not been created' if !@socket
-        if @use_timeout
-          Bunny::Timer::timeout(@socket_timeout, Qrack::ClientTimeout) do
+        if @read_write_timeout
+          Bunny::Timer::timeout(@read_write_timeout, Qrack::ClientTimeout) do
             @socket.__send__(cmd, *args)
           end
         else
@@ -29,22 +27,6 @@ module Qrack
         end
       rescue Errno::EPIPE, Errno::EAGAIN, Qrack::ClientTimeout, IOError => e
         raise Bunny::ServerDownError, e.message
-      end
-    end
-
-    # Set socket send and receive timeouts and let the operating system deal
-    # with these timeouts. If setting those isn't supported (for example on solaris)
-    # we use the Bunny::Timer::timeout method to wrap all socket accesses
-    def set_socket_timeouts
-      return if @status == :not_connected
-      secs   = Integer(@socket_timeout)
-      usecs  = Integer((@socket_timeout - secs) * 1_000_000)
-      optval = [secs, usecs].pack("l_2")
-      begin
-        @socket.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
-        @socket.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
-      rescue Errno::ENOPROTOOPT
-        @use_timeout = true
       end
     end
 
@@ -74,19 +56,21 @@ module Qrack
         raise Bunny::ServerDownError, e.message
       end
 
-      set_socket_timeouts
-
       @socket
+    end
+
+    def disconnect_timeout
+      @read_write_timeout || @connect_timeout
     end
 
     def close
       return if @socket.nil? || @socket.closed?
 
       # Close all active channels
-      channels.each { |c| Bunny::Timer::timeout(@socket_timeout) { c.close if c.open? } }
+      channels.each { |c| Bunny::Timer::timeout(disconnect_timeout) { c.close if c.open? } }
 
       # Close connection to AMQP server
-      Bunny::Timer::timeout(@socket_timeout) { close_connection }
+      Bunny::Timer::timeout(disconnect_timeout) { close_connection }
     rescue Exception
       # http://http://cheezburger.com/Asset/View/4033311488
     ensure
