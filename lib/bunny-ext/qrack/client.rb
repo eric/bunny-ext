@@ -8,6 +8,7 @@ module Qrack
     def initialize_with_timeout_opts(opts = {})
       initialize_without_timeout_opts(opts)
       @read_write_timeout = opts[:socket_timeout]
+      @read_write_timeout = nil if @read_write_timeout == 0
     end
     alias initialize initialize_with_timeout_opts
 
