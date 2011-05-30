@@ -27,6 +27,7 @@ module Qrack
           @socket.__send__(cmd, *args)
         end
       rescue Errno::EPIPE, Errno::EAGAIN, Qrack::ClientTimeout, IOError => e
+        close_socket
         raise Bunny::ServerDownError, e.message
       end
     end
