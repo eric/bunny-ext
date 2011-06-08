@@ -76,6 +76,10 @@ module Qrack
       # http://http://cheezburger.com/Asset/View/4033311488
     ensure
       @channels = []
+
+      # Create channel 0
+      @channel = create_channel()
+
       close_socket
     end
 
